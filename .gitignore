@@ -1,9 +1,4 @@
 .o
 .vscode/
-glad/
-glfw/
-glm/
-imgui/
-stb_image/
 textures/
 .gitignore
