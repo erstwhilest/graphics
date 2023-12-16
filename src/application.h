@@ -45,9 +45,9 @@ bool firstMouse = true;
 bool mouseFocus = false;
 bool render = true;
 
-float bladeHeight{10.0f};
+float bladeHeight{1.0f};
 
-float bladeSpacing{2.0f};
+float bladeSpacing{1.0f};
 float lastBladeSpacing{bladeSpacing};
 float bladeSize{1.0f};
 
@@ -61,18 +61,15 @@ ImGuiIO* ioptr{};
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
-int triangleCountX{10};
-int triangleCountY{1};
-int triangleCountZ{10};
-int triangleCount{triangleCountX*triangleCountY*triangleCountZ};
-
 
 unsigned int VAO;
 unsigned int VBO;
 unsigned int instanceVBO;
 unsigned int randomVBO;
+unsigned int normalVBO;
 
-unsigned int buffers[3]={VBO, instanceVBO, randomVBO};
+#define BUFFER_COUNT 4
+unsigned int buffers[BUFFER_COUNT]={VBO, instanceVBO, randomVBO, normalVBO};
 
 unsigned int lightVBO;
 unsigned int lightVAO;
@@ -87,10 +84,7 @@ double deltaTime2{};
 float ambientStrength{1};
 
 
-ModelData* model{};
-glm::vec3* offsets{};
-
-glm::vec3* random{};
+ModelData model;
 
 
 void draw()
@@ -99,7 +93,7 @@ void draw()
 	// render
 		// ------
 		
-		glClearColor(model->baseColor[0], model->baseColor[1], model->baseColor[2], 1.0f);//0.25f, 0.25f, 0.25f
+		glClearColor(model.baseColor[0], model.baseColor[1], model.baseColor[2], 1.0f);//0.25f, 0.25f, 0.25f
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
 		if (render)
@@ -107,8 +101,8 @@ void draw()
 			// activate shader
 			ourShader.use();
 
-			ourShader.setVec3("baseColor", glm::make_vec3(model->baseColor));
-			ourShader.setVec3("tipColor", glm::make_vec3(model->tipColor));
+			ourShader.setVec3("baseColor", glm::make_vec3(model.baseColor));
+			ourShader.setVec3("tipColor", glm::make_vec3(model.tipColor));
 			ourShader.setVec3("lightColor", glm::vec3(+1.0f, +1.0f, +1.0f));
 			ourShader.setVec3("lightPos", glm::vec3(+0.0f, +10.0f, +0.0f));
 			ourShader.setFloat("ambientStrength", ambientStrength);
@@ -131,7 +125,7 @@ void draw()
 			modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
 			modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
 			ourShader.setMat4("model", modelTransform);
-			glDrawArraysInstanced(GL_TRIANGLES, 0, model->vertexCount, triangleCount);
+			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
 
 			ourLightShader.use();
@@ -170,48 +164,10 @@ void processInput(GLFWwindow *window)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-void changeSpacing(float spacing)
-{
-	float randX=0.f;
-	float randY=0.f;
-	float randZ=0.f;
-	for (int i{}; i < triangleCountX; i++)
-	{
-		for (int j{}; j < triangleCountY; j++)
-		{
-			for (int k{}; k < triangleCountZ; k++)
-			{
-				randX=spacing*((std::rand()%100)/100.f-.5);
-				randY=1+(std::rand()%100/100.f)*2;
-				randZ=spacing*((std::rand()%100)/100.f-.5);
-				offsets[i*triangleCountY*triangleCountZ+j*triangleCountZ+k]=glm::vec3{(float)i*spacing+randX,(float)j+randY,(float)k*spacing+randZ};
-			}
-		}
-	}
-}
-
-void generateRandomNumbers()
-{
-	float rand1{};
-	float rand2{};
-	float rand3{};
-	for (int i{}; i<triangleCount; i++)
-	{
-		// phase
-		rand1=(std::rand()%100/100.f);
-
-		// amplitude
-		rand2=(std::rand()%100)/100.f*1+.5f;
-
-		// freq
-		rand3=((1+std::rand()%100)/100.f)/5.f+0.5f;
-		random[i]=glm::vec3(rand1, rand2, rand3);
-	}
-}
-
 public:
 
 Application()
+	: model{glm::vec3( 0.0f,  0.0f,  0.0f)}
 {
 	// random initialize
 	std::srand(std::time(nullptr));
@@ -286,55 +242,48 @@ Application()
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
 	ourLightShader = Shader("src/lightvertexshader.glsl", "src/lightfragmentshader.glsl");
 
-	// create first model
-	model = new ModelData{glm::vec3( 0.0f,  0.0f,  0.0f)};
-
-	// create instance offset list
-	offsets = new glm::vec3[triangleCount]
-	{
-	};
-	changeSpacing(bladeSpacing);
-
-	// create instance random numbers
-	random=new glm::vec3[triangleCount]
-	{
-	};
-	generateRandomNumbers();
-
-	glGenBuffers(3, buffers);
+	glGenBuffers(sizeof(buffers)/sizeof(buffers[0]), buffers);
 	VBO=buffers[0];
 	instanceVBO=buffers[1];
 	randomVBO=buffers[2];
+	normalVBO=buffers[3];
 
 	// create vertex array
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	// setup vertex buffer
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, model->getVertexBufferSize(), model->vertices, GL_DYNAMIC_DRAW);
-
 	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	// normal attribute
-
+	// glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
+	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.sideCount, model.normals, GL_STATIC_DRAW);
+	// glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	// glVertexAttribDivisor(1, 4);
+	// glEnableVertexAttribArray(1);
+	
 
 	// offset attribute
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, offsets, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.offsets, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glVertexAttribDivisor(2, 1);
 	glEnableVertexAttribArray(2);
 
 	// random attribute
-	glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, random, GL_STATIC_DRAW);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glVertexAttribDivisor(3, 1);
-	glEnableVertexAttribArray(3);
+	// glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
+	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, random, GL_STATIC_DRAW);
+	// glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	// glVertexAttribDivisor(3, 1);
+	// glEnableVertexAttribArray(3);
 
+
+
+
+	// LIGHT SOURCE CUBE
 	glm::vec3 lightCube[] = 
 	{
 		glm::vec3(-0.5f, -0.5f, -0.5f),
@@ -477,11 +426,11 @@ void run()
 		{
 			ImGui::Begin("Settings");
 			ImGui::Checkbox("Render", &render);
-			ImGui::ColorPicker3("Tip Color", model->tipColor);
-			ImGui::ColorPicker3("Base Color", model->baseColor);
-			model->refresh();
+			ImGui::ColorPicker3("Tip Color", model.tipColor);
+			ImGui::ColorPicker3("Base Color", model.baseColor);
+			model.refresh();
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, model->getVertexBufferSize(), model->vertices);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, model.getVertexBufferSize(), model.vertices);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 			ImGui::SliderFloat("Blade Height", &bladeHeight, 1, 100);
@@ -489,9 +438,9 @@ void run()
 			ImGui::SliderFloat("Spacing", &bladeSpacing, 0.1, 10);
 			if (bladeSpacing!=lastBladeSpacing)
 			{
-				changeSpacing(bladeSpacing);
+				model.generateOffsets(bladeSpacing);
 				glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*triangleCount, offsets);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*model.triangleCount, model.offsets);
 				glBindBuffer(GL_ARRAY_BUFFER, 0);
 			}
 			lastBladeSpacing=bladeSpacing;
@@ -516,12 +465,8 @@ void run()
 
 void cleanUp()
 {
-
-	delete model;
-	delete offsets;
-	delete random;
 	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(3, buffers);
+	glDeleteBuffers(BUFFER_COUNT, buffers);
 
 	glfwTerminate();
 }
