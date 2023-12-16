@@ -1,10 +1,12 @@
+// render includes
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <stb_image/stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <stb_image/stb_image.h>
 
+// stl includes
 #include <iostream>
 #include <cmath>
 #include <Windows.h>
@@ -12,10 +14,12 @@
 #include <ctime>
 #include <random>
 
+// imgui
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+// project files
 #include "shader.h"
 #include "camera.h"
 #include "modelData.h"
@@ -32,7 +36,6 @@ class Application
 // settings
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
-
 
 // camera
 Camera camera{glm::vec3(-100.0f, 100.0f, -100.0f)};
@@ -58,7 +61,7 @@ ImGuiIO* ioptr{};
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
-int triangleCountX{50};
+int triangleCountX{500};
 int triangleCountY{1};
 int triangleCountZ{500};
 int triangleCount{triangleCountX*triangleCountY*triangleCountZ};
@@ -66,9 +69,13 @@ int triangleCount{triangleCountX*triangleCountY*triangleCountZ};
 // glm::vec3* cubePos;
 
 // unsigned int texture1, texture2;
-unsigned int VBO, VAO;
-unsigned int instanceVBO{};
-unsigned int randomVBO{};
+unsigned int VAO;
+unsigned int VBO;
+unsigned int instanceVBO;
+unsigned int randomVBO;
+
+unsigned int buffers[3]={VBO, instanceVBO, randomVBO};
+
 GLFWwindow* window{};
 
 double fpsLimit{1.0f/144.0f};
@@ -95,7 +102,7 @@ void draw()
 		ourShader.use();
 
 		// pass projection matrix to shader (note that in this case it could change every frame)
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 300000.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 10000.0f);
 		ourShader.setMat4("projection", projection);
 
 		// camera/view transformation
@@ -184,26 +191,28 @@ public:
 
 Application()
 {
+	// random initialize
 	std::srand(std::time(nullptr));
-	// glfw: initialize and configure
-	// ------------------------------
+
+	// glfw initialize and configure
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_SAMPLES, 8);
 
+	// glfw window creation
 	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 
-
-	// glfw window creation
-	// --------------------
+	// check if window is created
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		exit(1);
 	}
+
+	// glfw callback configuration
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_wrapper);
 	glfwSetCursorPosCallback(window, mouse_wrapper);
@@ -211,78 +220,74 @@ Application()
 	glfwSetKeyCallback(window, key_wrapper);
 	glfwSetMouseButtonCallback(window, mouse_button_wrapper);
 
-	// tell GLFW to capture our mouse
+	// glfw mouse capture
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+
+	// imgui configuration
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 	ioptr=&io;
-
-	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
-
-	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init();
 	
 
 	// glad: load all OpenGL function pointers
-	// ---------------------------------------
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		exit(1);
 	}
 
-	// DEPTH
 	glEnable(GL_DEPTH_TEST);
 
-	// TRANSPARENT
+	// glad transparency
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	// FACE CULLING
+	// glad face culling
 	glEnable(GL_CULL_FACE);
-	// glCullFace(GL_FRONT);
-	// glFrontFace(GL_CW);
 
-	// ANTI ALIASING
+	// glad anti aliasing, samples set by glfw above
 	glEnable(GL_MULTISAMPLE);
 
-	// LIMIT FRAME CAP
+	// glfw vsync off
 	glfwSwapInterval(0);
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE );
 
-	// build and compile our shader zprogram
-	// ------------------------------------
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// build and compile our shader program
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
-	// set up vertex data (and buffer(s)) and configure vertex attributes
-	// ------------------------------------------------------------------
+
+	// create first model
 	model = new ModelData{glm::vec3( 0.0f,  0.0f,  0.0f)};
 
-	offsets = new glm::vec3[triangleCount]{
-		// glm::vec3{+0.0f, +0.0f, +0.0f},
-		// glm::vec3{+1.0f, +0.0f, +0.0f},
-		// glm::vec3{+0.0f, +1.0f, +0.0f},
-		// glm::vec3{+0.0f, +0.0f, +1.0f},
-	};
-
-	random=new glm::vec3[triangleCount]
+	// create instance offset list
+	offsets = new glm::vec3[triangleCount]
 	{
-
 	};
-
 	changeSpacing(bladeSpacing);
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
+	// create instance random numbers
+	random=new glm::vec3[triangleCount]
+	{
+	};
+	generateRandomNumbers();
 
+		glGenBuffers(3, buffers);
+	VBO=buffers[0];
+	instanceVBO=buffers[1];
+	randomVBO=buffers[2];
+
+	// create vertex array
+	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
+	// setup vertex buffer
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, model->getVertexBufferSize(), model->vertices, GL_DYNAMIC_DRAW);
 
@@ -295,43 +300,26 @@ Application()
 	glEnableVertexAttribArray(1);
 
 	// offset attribute
-	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, offsets, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexAttribDivisor(2, 1);
 	glEnableVertexAttribArray(2);
 
-
-	generateRandomNumbers();
-
 	// random attribute
-	glGenBuffers(1, &randomVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, random, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-	glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexAttribDivisor(3, 1);
 	glEnableVertexAttribArray(3);
-	
+
+	// unbind buffers
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	// make sure the viewport matches the new window dimensions; note that width and 
-	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
 }
 
@@ -339,13 +327,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
 	{
-		// camera.Zoom+=10.0f;
-		camera.MovementSpeed+=500.0f;
+		camera.MovementSpeed+=300.0f;
 	}
 	if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
 	{
-		// camera.Zoom-=10.0f;
-		camera.MovementSpeed-=500.0f;
+		camera.MovementSpeed-=300.0f;
 	}
 }
 
@@ -371,8 +357,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
 	if (mouseFocus)
@@ -397,8 +381,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 	}
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(static_cast<float>(yoffset));
@@ -440,14 +422,10 @@ void run()
 			
 			ImGui::End();
 		}
-		// per-frame time logic
-		// --------------------
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		// input
-		// -----
 		processInput(window);
 
 		draw();
@@ -459,17 +437,12 @@ void run()
 void cleanUp()
 {
 
-	// delete cubePos;
 	delete model;
 	delete offsets;
 	delete random;
-		// optional: de-allocate all resources once they've outlived their purpose:
-	// ------------------------------------------------------------------------
 	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(3, buffers);
 
-	// glfw: terminate, clearing all previously allocated GLFW resources.
-	// ------------------------------------------------------------------
 	glfwTerminate();
 }
 };
