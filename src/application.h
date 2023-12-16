@@ -32,7 +32,6 @@ void scroll_wrapper(GLFWwindow* window, double xoffset, double yoffset);
 
 class Application
 {
-
 // settings
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1080;
@@ -54,6 +53,7 @@ float bladeSize{1.0f};
 
 double easeTime{};
 Shader ourShader;
+Shader ourLightShader;
 
 ImGuiIO* ioptr{};
 
@@ -61,20 +61,21 @@ ImGuiIO* ioptr{};
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
-int triangleCountX{500};
+int triangleCountX{10};
 int triangleCountY{1};
-int triangleCountZ{500};
+int triangleCountZ{10};
 int triangleCount{triangleCountX*triangleCountY*triangleCountZ};
 
-// glm::vec3* cubePos;
 
-// unsigned int texture1, texture2;
 unsigned int VAO;
 unsigned int VBO;
 unsigned int instanceVBO;
 unsigned int randomVBO;
 
 unsigned int buffers[3]={VBO, instanceVBO, randomVBO};
+
+unsigned int lightVBO;
+unsigned int lightVAO;
 
 GLFWwindow* window{};
 
@@ -83,11 +84,14 @@ double lastTime{};
 double currentTime{};
 double deltaTime2{};
 
+float ambientStrength{1};
+
 
 ModelData* model{};
 glm::vec3* offsets{};
 
 glm::vec3* random{};
+
 
 void draw()
 {
@@ -98,21 +102,28 @@ void draw()
 		glClearColor(model->baseColor[0], model->baseColor[1], model->baseColor[2], 1.0f);//0.25f, 0.25f, 0.25f
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-		// activate shader
-		ourShader.use();
-
-		// pass projection matrix to shader (note that in this case it could change every frame)
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 10000.0f);
-		ourShader.setMat4("projection", projection);
-
-		// camera/view transformation
-		glm::mat4 view = camera.GetViewMatrix();
-		ourShader.setMat4("view", view);
-
-		ourShader.setFloat("time", glfwGetTime());
-
 		if (render)
 		{
+			// activate shader
+			ourShader.use();
+
+			ourShader.setVec3("baseColor", glm::make_vec3(model->baseColor));
+			ourShader.setVec3("tipColor", glm::make_vec3(model->tipColor));
+			ourShader.setVec3("lightColor", glm::vec3(+1.0f, +1.0f, +1.0f));
+			ourShader.setVec3("lightPos", glm::vec3(+0.0f, +10.0f, +0.0f));
+			ourShader.setFloat("ambientStrength", ambientStrength);
+
+
+			// pass projection matrix to shader (note that in this case it could change every frame)
+			glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 10000.0f);
+			ourShader.setMat4("projection", projection);
+
+			// camera/view transformation
+			glm::mat4 view = camera.GetViewMatrix();
+			ourShader.setMat4("view", view);
+			ourShader.setFloat("time", glfwGetTime());
+
+
 			glBindVertexArray(VAO);
 			glm::mat4 modelTransform = glm::mat4(1.0f);
 			// float angle = 3.14f;
@@ -121,18 +132,29 @@ void draw()
 			modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model->vertexCount, triangleCount);
+
+
+			ourLightShader.use();
+
+			ourLightShader.setMat4("projection", projection);
+			ourLightShader.setMat4("view", view);
+			modelTransform = glm::mat4(1.0f);
+			modelTransform = glm::scale(modelTransform, glm::vec3(5.0f));
+			modelTransform = glm::translate(modelTransform, glm::vec3(0.0f, 10.0f, 0.0f));
+			ourLightShader.setMat4("model", modelTransform);
+			
+			glBindVertexArray(lightVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
 		
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(window);
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -250,7 +272,7 @@ Application()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	// glad face culling
-	glEnable(GL_CULL_FACE);
+	// glEnable(GL_CULL_FACE);
 
 	// glad anti aliasing, samples set by glfw above
 	glEnable(GL_MULTISAMPLE);
@@ -262,6 +284,7 @@ Application()
 
 	// build and compile our shader program
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
+	ourLightShader = Shader("src/lightvertexshader.glsl", "src/lightfragmentshader.glsl");
 
 	// create first model
 	model = new ModelData{glm::vec3( 0.0f,  0.0f,  0.0f)};
@@ -278,7 +301,7 @@ Application()
 	};
 	generateRandomNumbers();
 
-		glGenBuffers(3, buffers);
+	glGenBuffers(3, buffers);
 	VBO=buffers[0];
 	instanceVBO=buffers[1];
 	randomVBO=buffers[2];
@@ -295,9 +318,8 @@ Application()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
-	glEnableVertexAttribArray(1);
+	// normal attribute
+
 
 	// offset attribute
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
@@ -312,6 +334,62 @@ Application()
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glVertexAttribDivisor(3, 1);
 	glEnableVertexAttribArray(3);
+
+	glm::vec3 lightCube[] = 
+	{
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+		glm::vec3(0.5f, -0.5f, -0.5f ),
+		glm::vec3(0.5f,  0.5f, -0.5f ),
+		glm::vec3(0.5f,  0.5f, -0.5f ),
+		glm::vec3(-0.5f,  0.5f, -0.5f),
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+
+		glm::vec3(-0.5f, -0.5f,  0.5f),
+		glm::vec3(0.5f, -0.5f,  0.5f ),
+		glm::vec3(0.5f,  0.5f,  0.5f ),
+		glm::vec3(0.5f,  0.5f,  0.5f ),
+		glm::vec3(-0.5f,  0.5f,  0.5f),
+		glm::vec3(-0.5f, -0.5f,  0.5f),
+
+		glm::vec3(-0.5f,  0.5f,  0.5f),
+		glm::vec3(-0.5f,  0.5f, -0.5f),
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+		glm::vec3(-0.5f, -0.5f,  0.5f),
+		glm::vec3(-0.5f,  0.5f,  0.5f),
+
+		glm::vec3(0.5f,  0.5f,  0.5f),
+		glm::vec3(0.5f,  0.5f, -0.5f),
+		glm::vec3(0.5f, -0.5f, -0.5f),
+		glm::vec3(0.5f, -0.5f, -0.5f),
+		glm::vec3(0.5f, -0.5f,  0.5f),
+		glm::vec3(0.5f,  0.5f,  0.5f),
+
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+		glm::vec3(0.5f, -0.5f, -0.5f ),
+		glm::vec3(0.5f, -0.5f,  0.5f ),
+		glm::vec3(0.5f, -0.5f,  0.5f ),
+		glm::vec3(-0.5f, -0.5f,  0.5f),
+		glm::vec3(-0.5f, -0.5f, -0.5f),
+
+		glm::vec3(-0.5f,  0.5f, -0.5f),
+		glm::vec3(0.5f,  0.5f, -0.5f ),
+		glm::vec3(0.5f,  0.5f,  0.5f ),
+		glm::vec3(0.5f,  0.5f,  0.5f ),
+		glm::vec3(-0.5f,  0.5f,  0.5f),
+		glm::vec3(-0.5f,  0.5f, -0.5f),
+	};
+
+	// light
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+
+	glGenBuffers(1, &lightVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(lightCube), lightCube, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glEnableVertexAttribArray(0);
+
 
 	// unbind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -419,6 +497,7 @@ void run()
 			lastBladeSpacing=bladeSpacing;
 
 			ImGui::SliderFloat("Size", &bladeSize, 0.1, 10);
+			ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0.01, 1);
 			
 			ImGui::End();
 		}
@@ -434,6 +513,7 @@ void run()
 		glfwPollEvents();
 	}
 }
+
 void cleanUp()
 {
 
