@@ -10,6 +10,7 @@ class ModelData
 {
 public:
 	glm::vec3* vertices{};
+	unsigned int* indices{};
 	glm::vec3* normals{};
 	glm::vec3* offsets{};
 	glm::vec3* random{};
@@ -17,14 +18,12 @@ public:
 	float* tipColor{new float[3]{+0.3f, +0.7f, +0.0f}};
 	float* baseColor{new float[3]{+0.0f, +0.0f, +0.0f}};
 	int sideCount{4};
+	int pointCount{5};
 	int vertexCount{};
-	glm::vec3 v1{+1.0f, +1.0f, +0.0f};
-	glm::vec3 v2{-1.0f, +1.0f, +0.0f};
-	glm::vec3 v3{-1.0f, -1.0f, +0.0f};
 
-	int triangleCountX{10};
+	int triangleCountX{500};
 	int triangleCountY{1};
-	int triangleCountZ{10};
+	int triangleCountZ{500};
 	int triangleCount{};
 
 	ModelData(glm::vec3 pos)
@@ -35,27 +34,21 @@ public:
 
 		vertices=new glm::vec3[vertexCount]
 		{
-			glm::vec3{+0.0f, +1.0f, +0.0f},
-			glm::vec3{-1.0f, -0.0f, +1.0f},
-			glm::vec3{+1.0f, -0.0f, +1.0f},
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{-0.5f, -0.0f, +0.5f},
+			glm::vec3{+0.5f, -0.0f, +0.5f},
 
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{+0.5f, -0.0f, +0.5f},
+			glm::vec3{+0.5f, +0.0f, -0.5f},
 
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{+0.5f, +0.0f, -0.5f},
+			glm::vec3{-0.5f, -0.0f, -0.5f},
 
-			glm::vec3{+0.0f, +1.0f, +0.0f},
-			glm::vec3{+1.0f, +0.0f, +1.0f},
-			glm::vec3{+1.0f, +0.0f, -1.0f},
-
-
-
-			glm::vec3{+0.0f, +1.0f, +0.0f},
-			glm::vec3{+1.0f, +0.0f, -1.0f},
-			glm::vec3{-1.0f, -0.0f, -1.0f},
-
-
-
-			glm::vec3{+0.0f, +1.0f, +0.0f},
-			glm::vec3{-1.0f, +0.0f, -1.0f},
-			glm::vec3{-1.0f, +0.0f, +1.0f},
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{-0.5f, -0.0f, -0.5f},
+			glm::vec3{-0.5f, -0.0f, +0.5f},
 		};
 
 		normals=new glm::vec3[sideCount]
@@ -65,9 +58,14 @@ public:
 			glm::vec3{-0.5f, +0.0f, -0.5f},
 			glm::vec3{-0.5f, +0.5f, +0.0f},
 		};
+
+		offsets=new glm::vec3[triangleCount];
+		generateOffsets(1.0f);
+		random=new glm::vec3[triangleCount];
+		generateRandom();
 	}
 
-	void generateOffsets(float& spacing)
+	void generateOffsets(float spacing)
 	{
 		float randX=0.f;
 		float randY=0.f;
@@ -78,10 +76,10 @@ public:
 			{
 				for (int k{}; k < triangleCountZ; k++)
 				{
-					// randX=spacing*((std::rand()%100)/100.f-.5);
-					// randY=1+(std::rand()%100/100.f)*2;
-					// randZ=spacing*((std::rand()%100)/100.f-.5);
-					offsets[i*triangleCountY*triangleCountZ+j*triangleCountZ+k]=glm::vec3{(float)i*spacing+randX,(float)j+randY,(float)k*spacing+randZ};
+					randX=spacing*((std::rand()%100)/100.f-.5);
+					randY=1+(std::rand()%100/100.f)*2;
+					randZ=spacing*((std::rand()%100)/100.f-.5);
+					offsets[i*triangleCountY*triangleCountZ+j*triangleCountZ+k]=glm::vec3{(float)i*spacing+randX,(float)j,(float)k*spacing+randZ};
 				}
 			}
 		}
@@ -127,16 +125,17 @@ public:
 
 	int getVertexBufferSize()
 	{
-		return sideCount * sizeof(glm::vec3);
+		return vertexCount * sizeof(glm::vec3);
 	}
 
 	~ModelData()
 	{
-		delete vertices;
-		delete normals;
-		delete tipColor;
-		delete baseColor;
-		delete offsets;
-		delete random;
+		delete[] vertices;
+		delete[] normals;
+		delete[] tipColor;
+		delete[] baseColor;
+		delete[] offsets;
+		delete[] random;
+		delete[] indices;
 	}
 };

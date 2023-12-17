@@ -5,9 +5,8 @@ layout (location = 2) in vec3 aOffset;
 layout (location = 3) in vec3 aRandom;
 
 out vec3 fragPos;
-out vec3 normal;
+// out vec3 normal;
 out vec3 color;
-out int ID;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -37,6 +36,7 @@ void main()
 	{
 		color = baseColor;
 	}
+	// color=tipColor;
 
 	gl_Position = projection * view * vec4(newPos.x+aOffset.x, newPos.y, newPos.z+aOffset.z, newPos.a);
 	// gl_Position = projection * view * newPos;

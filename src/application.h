@@ -63,13 +63,14 @@ float lastFrame = 0.0f;
 
 
 unsigned int VAO;
+
 unsigned int VBO;
 unsigned int instanceVBO;
 unsigned int randomVBO;
 unsigned int normalVBO;
 
-#define BUFFER_COUNT 4
-unsigned int buffers[BUFFER_COUNT]={VBO, instanceVBO, randomVBO, normalVBO};
+#define BUFFER_COUNT 5
+unsigned int buffers[BUFFER_COUNT];
 
 unsigned int lightVBO;
 unsigned int lightVAO;
@@ -116,7 +117,6 @@ void draw()
 			glm::mat4 view = camera.GetViewMatrix();
 			ourShader.setMat4("view", view);
 			ourShader.setFloat("time", glfwGetTime());
-
 
 			glBindVertexArray(VAO);
 			glm::mat4 modelTransform = glm::mat4(1.0f);
@@ -228,7 +228,7 @@ Application()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	// glad face culling
-	// glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	// glad anti aliasing, samples set by glfw above
 	glEnable(GL_MULTISAMPLE);
@@ -242,15 +242,21 @@ Application()
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
 	ourLightShader = Shader("src/lightvertexshader.glsl", "src/lightfragmentshader.glsl");
 
-	glGenBuffers(sizeof(buffers)/sizeof(buffers[0]), buffers);
-	VBO=buffers[0];
-	instanceVBO=buffers[1];
-	randomVBO=buffers[2];
-	normalVBO=buffers[3];
+	// glGenBuffers(sizeof(buffers)/sizeof(buffers[0]), buffers);
+	// EBO = buffers[0];
+	// VBO = buffers[1];
+	// instanceVBO = buffers[2];
+	// randomVBO = buffers[3];
+	// normalVBO = buffers[4];
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &instanceVBO);
+	glGenBuffers(1, &randomVBO);
+	glGenBuffers(1, &normalVBO);
 
 	// create vertex array
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
+
 
 	// position attribute
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -258,12 +264,13 @@ Application()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
 
+
 	// normal attribute
-	// glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.sideCount, model.normals, GL_STATIC_DRAW);
-	// glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	// glVertexAttribDivisor(1, 4);
-	// glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.sideCount, model.normals, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribDivisor(1, 4);
+	glEnableVertexAttribArray(1);
 	
 
 	// offset attribute
@@ -274,59 +281,58 @@ Application()
 	glEnableVertexAttribArray(2);
 
 	// random attribute
-	// glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
-	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*triangleCount, random, GL_STATIC_DRAW);
-	// glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	// glVertexAttribDivisor(3, 1);
-	// glEnableVertexAttribArray(3);
-
-
+	glBindBuffer(GL_ARRAY_BUFFER, randomVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.random, GL_STATIC_DRAW);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribDivisor(3, 1);
+	glEnableVertexAttribArray(3);
 
 
 	// LIGHT SOURCE CUBE
 	glm::vec3 lightCube[] = 
 	{
-		glm::vec3(-0.5f, -0.5f, -0.5f),
-		glm::vec3(0.5f, -0.5f, -0.5f ),
-		glm::vec3(0.5f,  0.5f, -0.5f ),
-		glm::vec3(0.5f,  0.5f, -0.5f ),
-		glm::vec3(-0.5f,  0.5f, -0.5f),
-		glm::vec3(-0.5f, -0.5f, -0.5f),
+		glm::vec3{-0.5, +0.5, +0.5},
+		glm::vec3{-0.5, -0.5, +0.5},
+		glm::vec3{+0.5, -0.5, +0.5},
+		glm::vec3{-0.5, +0.5, +0.5},
+		glm::vec3{+0.5, -0.5, +0.5},
+		glm::vec3{+0.5, +0.5, +0.5},
+		
+		glm::vec3{+0.5, +0.5, +0.5},
+		glm::vec3{+0.5, -0.5, +0.5},
+		glm::vec3{+0.5, -0.5, -0.5},
+		glm::vec3{+0.5, +0.5, +0.5},
+		glm::vec3{+0.5, -0.5, -0.5},
+		glm::vec3{+0.5, +0.5, -0.5},
+		
+		glm::vec3{+0.5, +0.5, -0.5},
+		glm::vec3{+0.5, -0.5, -0.5},
+		glm::vec3{-0.5, -0.5, -0.5},
+		glm::vec3{+0.5, +0.5, -0.5},
+		glm::vec3{-0.5, -0.5, -0.5},
+		glm::vec3{-0.5, +0.5, -0.5},
+		
+		glm::vec3{-0.5, +0.5, -0.5},
+		glm::vec3{-0.5, -0.5, -0.5},
+		glm::vec3{-0.5, -0.5, +0.5},
+		glm::vec3{-0.5, +0.5, -0.5},
+		glm::vec3{-0.5, -0.5, +0.5},
+		glm::vec3{-0.5, +0.5, +0.5},
+		
+		glm::vec3{-0.5, +0.5, -0.5},
+		glm::vec3{-0.5, +0.5, +0.5},
+		glm::vec3{+0.5, +0.5, +0.5},
+		glm::vec3{-0.5, +0.5, -0.5},
+		glm::vec3{+0.5, +0.5, +0.5},
+		glm::vec3{+0.5, +0.5, -0.5},
+		
+		glm::vec3{+0.5, -0.5, +0.5},
+		glm::vec3{-0.5, -0.5, -0.5},
+		glm::vec3{+0.5, -0.5, -0.5},
+		glm::vec3{+0.5, -0.5, +0.5},
+		glm::vec3{-0.5, -0.5, +0.5},
+		glm::vec3{-0.5, -0.5, -0.5},
 
-		glm::vec3(-0.5f, -0.5f,  0.5f),
-		glm::vec3(0.5f, -0.5f,  0.5f ),
-		glm::vec3(0.5f,  0.5f,  0.5f ),
-		glm::vec3(0.5f,  0.5f,  0.5f ),
-		glm::vec3(-0.5f,  0.5f,  0.5f),
-		glm::vec3(-0.5f, -0.5f,  0.5f),
-
-		glm::vec3(-0.5f,  0.5f,  0.5f),
-		glm::vec3(-0.5f,  0.5f, -0.5f),
-		glm::vec3(-0.5f, -0.5f, -0.5f),
-		glm::vec3(-0.5f, -0.5f, -0.5f),
-		glm::vec3(-0.5f, -0.5f,  0.5f),
-		glm::vec3(-0.5f,  0.5f,  0.5f),
-
-		glm::vec3(0.5f,  0.5f,  0.5f),
-		glm::vec3(0.5f,  0.5f, -0.5f),
-		glm::vec3(0.5f, -0.5f, -0.5f),
-		glm::vec3(0.5f, -0.5f, -0.5f),
-		glm::vec3(0.5f, -0.5f,  0.5f),
-		glm::vec3(0.5f,  0.5f,  0.5f),
-
-		glm::vec3(-0.5f, -0.5f, -0.5f),
-		glm::vec3(0.5f, -0.5f, -0.5f ),
-		glm::vec3(0.5f, -0.5f,  0.5f ),
-		glm::vec3(0.5f, -0.5f,  0.5f ),
-		glm::vec3(-0.5f, -0.5f,  0.5f),
-		glm::vec3(-0.5f, -0.5f, -0.5f),
-
-		glm::vec3(-0.5f,  0.5f, -0.5f),
-		glm::vec3(0.5f,  0.5f, -0.5f ),
-		glm::vec3(0.5f,  0.5f,  0.5f ),
-		glm::vec3(0.5f,  0.5f,  0.5f ),
-		glm::vec3(-0.5f,  0.5f,  0.5f),
-		glm::vec3(-0.5f,  0.5f, -0.5f),
 	};
 
 	// light
@@ -342,6 +348,7 @@ Application()
 
 	// unbind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 
@@ -428,10 +435,11 @@ void run()
 			ImGui::Checkbox("Render", &render);
 			ImGui::ColorPicker3("Tip Color", model.tipColor);
 			ImGui::ColorPicker3("Base Color", model.baseColor);
-			model.refresh();
-			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, model.getVertexBufferSize(), model.vertices);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			// model.refresh();
+			// glBindBuffer(GL_ARRAY_BUFFER, VBO);
+			// glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
+			// glBufferSubData(GL_ARRAY_BUFFER, 0, model.getVertexBufferSize(), model.vertices);
+			// glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 			ImGui::SliderFloat("Blade Height", &bladeHeight, 1, 100);
 
@@ -440,7 +448,8 @@ void run()
 			{
 				model.generateOffsets(bladeSpacing);
 				glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*model.triangleCount, model.offsets);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.offsets, GL_DYNAMIC_DRAW);
+				// glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*model.triangleCount, model.offsets);
 				glBindBuffer(GL_ARRAY_BUFFER, 0);
 			}
 			lastBladeSpacing=bladeSpacing;
@@ -458,7 +467,6 @@ void run()
 
 		draw();
 		
-
 		glfwPollEvents();
 	}
 }
