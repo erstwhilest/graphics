@@ -79,12 +79,16 @@ unsigned int lightVAO;
 
 GLFWwindow* window{};
 
-double fpsLimit{1.0f/144.0f};
+double fpsLimit{1/300.f};
 double lastTime{};
 double currentTime{};
 double deltaTime2{};
 
 float ambientStrength{.1};
+float diffuseStrength{1};
+float constantStrength{1};
+float linearStrength{0.007f};
+float quadraticStrength{0.0002f*1000};
 
 float lightPos[3]{+0.0f, +10.0f, +0.0f};
 float lightColor[3]{+1.0f, +1.0f, +1.0f};
@@ -95,7 +99,6 @@ ModelData model;
 
 void draw()
 {
-	ImGui::Render();
 	// render
 		// ------
 		
@@ -105,7 +108,7 @@ void draw()
 		if (render)
 		{
 			glm::mat4 lightTransform = glm::mat4(1.0f);
-			lightTransform = glm::scale(lightTransform, glm::vec3(5.0f));
+			// lightTransform = glm::scale(lightTransform, glm::vec3(5.0f));
 			// activate shader
 			ourShader.use();
 
@@ -113,14 +116,19 @@ void draw()
 			ourShader.setVec3("tipColor", glm::make_vec3(model.tipColor));
 
 			ourShader.setVec3("lightColor", glm::make_vec3(lightColor));
-			ourShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+			ourShader.setVec3("lightPos", camera.Position);
+			// ourShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
 			ourShader.setMat4("lightModel", lightTransform);
 			ourShader.setFloat("ambientStrength", ambientStrength);
+			ourShader.setFloat("diffuseStrength", diffuseStrength);
+			ourShader.setFloat("constant", constantStrength);
+			ourShader.setFloat("lienar", linearStrength);
+			ourShader.setFloat("quadratic", quadraticStrength/1000);
 
 
 
 			// pass projection matrix to shader (note that in this case it could change every frame)
-			glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 10000.0f);
+			glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 1.0f, 100000.0f);
 			ourShader.setMat4("projection", projection);
 
 			// camera/view transformation
@@ -135,30 +143,28 @@ void draw()
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
+			// ourLightShader.use();
 
-			ourLightShader.use();
+			// ourLightShader.setMat4("projection", projection);
+			// ourLightShader.setMat4("view", view);
+			// lightTransform = glm::translate(lightTransform, camera.Position);
+			// ourLightShader.setMat4("model", lightTransform);
 
-			ourLightShader.setMat4("projection", projection);
-			ourLightShader.setMat4("view", view);
-			lightTransform = glm::translate(lightTransform, glm::make_vec3(lightPos));
-			ourLightShader.setMat4("model", lightTransform);
+			// glBindVertexArray(lightVAO);
+			// glDrawArrays(GL_TRIANGLES, 0, 36);
 
-			glBindVertexArray(lightVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-
-			if (renderNormals)
-			{
-				ourNormalShader.use();
-				ourNormalShader.setMat4("projection", projection);
-				ourNormalShader.setMat4("view", view);
-				ourNormalShader.setMat4("objModel", modelTransform);
-				// ourNormalShader.setMat4("lightModel", lightTransform);
-				ourNormalShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
-				ourNormalShader.setFloat("time", glfwGetTime());
-				glBindVertexArray(VAO);
-				// glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
-			}
-			
+			// if (renderNormals)
+			// {
+			// 	ourNormalShader.use();
+			// 	ourNormalShader.setMat4("projection", projection);
+			// 	ourNormalShader.setMat4("view", view);
+			// 	ourNormalShader.setMat4("objModel", modelTransform);
+			// 	// ourNormalShader.setMat4("lightModel", lightTransform);
+			// 	ourNormalShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+			// 	ourNormalShader.setFloat("time", glfwGetTime());
+			// 	glBindVertexArray(VAO);
+			// 	// glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
+			// }
 		}
 
 		
@@ -441,7 +447,6 @@ void run()
 	lastTime=glfwGetTime();
 	while (!glfwWindowShouldClose(window))
 	{
-
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -477,12 +482,16 @@ void run()
 
 			if (ImGui::TreeNode("Light Settings"))
 			{
-				ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0.01, 1);
+				ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0, 1);
+				ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.01, 1);
+				ImGui::SliderFloat("Constant Strength", &constantStrength, 1, 1);
+				ImGui::SliderFloat("Linear Strength", &linearStrength, 0.0014, 0.07);
+				ImGui::SliderFloat("Quadratic Strength", &quadraticStrength, 0.001, 1);
 
-				ImGui::ColorPicker3("Base Color", lightColor);
-				ImGui::SliderFloat("Light Pos X", &lightPos[0], -50, 100);
-				ImGui::SliderFloat("Light Pos Y", &lightPos[1], -10, 100);
-				ImGui::SliderFloat("Light Pos Z", &lightPos[2], -50, 100);
+				ImGui::ColorPicker3("Light Color", lightColor);
+				// ImGui::SliderFloat("Light Pos X", &lightPos[0], -50, 100);
+				// ImGui::SliderFloat("Light Pos Y", &lightPos[1], -10, 100);
+				// ImGui::SliderFloat("Light Pos Z", &lightPos[2], -50, 100);
 				ImGui::TreePop();
 			}
 			
@@ -490,12 +499,16 @@ void run()
 		}
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		// lastFrame = currentFrame;
 
-		processInput(window);
+		ImGui::Render();
+		if (deltaTime > fpsLimit)
+		{
+			processInput(window);
+			draw();
+			lastFrame=currentFrame;
+		}
 
-		draw();
-		
 		glfwPollEvents();
 	}
 }

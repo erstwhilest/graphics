@@ -47,5 +47,5 @@ void main()
 	normal=vec3(modelToWorld*vec4(aNormal,0));
 	// normal=aNormal;
 	fragPos=vec3(modelToWorld*vec4(aPos, 1.0));
-	gl_Position=projection*view*modelToWorld*vec4(aPos, 1.0);
+	gl_Position=projection*view*newPos;
 }

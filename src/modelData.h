@@ -20,9 +20,9 @@ public:
 	int sideCount{4};
 	int vertexCount{};
 
-	int triangleCountX{50};
+	int triangleCountX{1000};
 	int triangleCountY{1};
-	int triangleCountZ{50};
+	int triangleCountZ{1000};
 	int triangleCount{};
 
 	ModelData(glm::vec3 pos)
@@ -76,14 +76,6 @@ public:
 			glm::vec3{-0.5f, +0.5f, +0.0f},
 		};
 
-		// normals=new glm::vec3[sideCount]
-		// {
-		// 	glm::vec3{+0.0f, +0.5f, +0.5f},
-		// 	glm::vec3{+0.5f, +0.5f, +0.0f},
-		// 	glm::vec3{+0.0f, +0.5f, -0.5f},
-		// 	glm::vec3{-0.5f, +0.5f, +0.0f},
-		// };
-
 		offsets=new glm::vec3[triangleCount];
 		generateOffsets(10.0f);
 		random=new glm::vec3[triangleCount];
@@ -101,9 +93,9 @@ public:
 			{
 				for (int k{}; k < triangleCountZ; k++)
 				{
-					// randX=spacing*((std::rand()%100)/100.f-.5);
-					// // randY=1+(std::rand()%100/100.f)*2;
-					// randZ=spacing*((std::rand()%100)/100.f-.5);
+					randX=spacing*((std::rand()%100)/100.f-.5);
+					// randY=1+(std::rand()%100/100.f)*2;
+					randZ=spacing*((std::rand()%100)/100.f-.5);
 					offsets[i*triangleCountY*triangleCountZ+j*triangleCountZ+k]=glm::vec3{(float)i*spacing+randX,(float)j,(float)k*spacing+randZ};
 				}
 			}
@@ -117,14 +109,14 @@ public:
 		float rand3{};
 		for (int i{}; i<triangleCount; i++)
 		{
-			// // phase
-			// rand1=(std::rand()%100/100.f);
+			// phase
+			rand1=(std::rand()%100/100.f);
 
-			// // amplitude
-			// rand2=(std::rand()%100)/100.f*1+.5f;
+			// amplitude
+			rand2=(std::rand()%100)/100.f*1+.5f;
 
-			// // freq
-			// rand3=((1+std::rand()%100)/100.f)/5.f+0.5f;
+			// freq
+			rand3=((1+std::rand()%100)/100.f)/5.f+0.5f;
 			random[i]=glm::vec3(rand1, rand2, rand3);
 		}
 	}
