@@ -104,6 +104,8 @@ void draw()
 
 		if (render)
 		{
+			glm::mat4 lightTransform = glm::mat4(1.0f);
+			lightTransform = glm::scale(lightTransform, glm::vec3(5.0f));
 			// activate shader
 			ourShader.use();
 
@@ -112,7 +114,9 @@ void draw()
 
 			ourShader.setVec3("lightColor", glm::make_vec3(lightColor));
 			ourShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+			ourShader.setMat4("lightModel", lightTransform);
 			ourShader.setFloat("ambientStrength", ambientStrength);
+
 
 
 			// pass projection matrix to shader (note that in this case it could change every frame)
@@ -131,28 +135,30 @@ void draw()
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
-			if (renderNormals)
-			{
-				ourNormalShader.use();
-				ourNormalShader.setMat4("projection", projection);
-				ourNormalShader.setMat4("view", view);
-				ourNormalShader.setMat4("model", modelTransform);
-				ourNormalShader.setFloat("time", glfwGetTime());
-
-				glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
-			}
 
 			ourLightShader.use();
 
 			ourLightShader.setMat4("projection", projection);
 			ourLightShader.setMat4("view", view);
-			glm::mat4 lightTransform = glm::mat4(1.0f);
-			lightTransform = glm::scale(lightTransform, glm::vec3(5.0f));
 			lightTransform = glm::translate(lightTransform, glm::make_vec3(lightPos));
 			ourLightShader.setMat4("model", lightTransform);
 
 			glBindVertexArray(lightVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
+
+			if (renderNormals)
+			{
+				ourNormalShader.use();
+				ourNormalShader.setMat4("projection", projection);
+				ourNormalShader.setMat4("view", view);
+				ourNormalShader.setMat4("objModel", modelTransform);
+				// ourNormalShader.setMat4("lightModel", lightTransform);
+				ourNormalShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+				ourNormalShader.setFloat("time", glfwGetTime());
+				glBindVertexArray(VAO);
+				// glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
+			}
+			
 		}
 
 		

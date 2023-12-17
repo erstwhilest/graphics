@@ -10,12 +10,24 @@ out VS_OUT {
 } vs_out;
 
 uniform mat4 view;
-uniform mat4 model;
+uniform mat4 objModel;
+uniform mat4 lightModel;
+uniform mat4 projection;
 uniform float time;
+
+mat4 buildTranslationMatrix(vec3 delta)
+{
+	return mat4(
+		vec4(1.0, 0.0, 0.0, 0.0),
+		vec4(0.0, 1.0, 0.0, 0.0),
+		vec4(0.0, 0.0, 1.0, 0.0),
+		vec4(delta, 1.0));
+}
 
 void main()
 {
-	vec4 newPos = model * vec4(aPos, 1.0);
+	mat4 modelToWorld=buildTranslationMatrix(aOffset)*objModel;
+	vec4 newPos = modelToWorld * vec4(aPos, 1.0);
 	if (gl_VertexID % 3 == 0)
 	{
 		newPos.x+=aRandom.y*sin(2*PI*aRandom.z*time+2*aRandom.x*PI);
@@ -23,41 +35,8 @@ void main()
 		newPos.z+=aRandom.y*cos(1*PI*aRandom.z*time+2*0.5*aRandom.x*PI);
 	}
 
-	gl_Position = view * vec4(newPos.x+aOffset.x, newPos.y, newPos.z+aOffset.z, newPos.a);
-	mat3 normalMatrix = mat3(transpose(inverse(view * model)));
+	mat3 normalMatrix = mat3(transpose(inverse(view * modelToWorld)));
 	vs_out.normal = normalize(vec3(vec4(normalMatrix * (aNormal), 0.0)));
+
+	gl_Position=projection*view*modelToWorld*vec4(aPos, 1.0);
 }
-
-// #version 330
-// layout (location = 0) in vec3 aPos;
-// layout (location = 1) in vec3 aNormal;
-// layout (location = 2) in vec3 aOffset;
-
-// out VS_OUT {
-// 	vec3 normal;
-// 	// vec3 offset;
-// } vs_out;
-
-// uniform mat4 view;
-// uniform mat4 model;
-
-// void main()
-// {
-// 	vec3 temp = vec3(aPos.x+aOffset.x, aPos.y, aPos.z+aOffset.z);
-// 	vec4 newPos = model * vec4(aPos, 1.0);
-// 	fragPos=vec3(newPos);
-
-// 	// normal=aNormal;
-// 	// normal = vec3(model * vec4(aNormal+aOffset, 0));
-// 	// normal = mat3(transpose(inverse(model))) * (aNormal+aOffset);
-// 	// normal=normalize(aNormal+aOffset);
-
-// 	gl_Position = view * vec4(newPos.x+aOffset.x, newPos.y, newPos.z+aOffset.z, newPos.a);
-// 	// gl_Position = projection * view * newPos;
-
-// 	// gl_Position = view * model * vec4(aPos, 1.0); 
-// 	// mat3 normalMatrix = mat3(transpose(inverse(view * model)));
-// 	// vs_out.normal = normalize(vec3(vec4(normalMatrix * aNormal, 0.0)));
-// 	vs_out.normal=aNormal;
-// 	// vs_out.offset=offset;
-// }

@@ -16,13 +16,13 @@ public:
 	glm::vec3* random{};
 	glm::vec3 position{};
 	float* tipColor{new float[3]{+0.3f, +0.7f, +0.0f}};
-	float* baseColor{new float[3]{+0.4f, +0.4f, +0.4f}};
+	float* baseColor{new float[3]{+0.0f, +0.0f, +0.0f}};
 	int sideCount{4};
 	int vertexCount{};
 
-	int triangleCountX{1};
+	int triangleCountX{50};
 	int triangleCountY{1};
-	int triangleCountZ{1};
+	int triangleCountZ{50};
 	int triangleCount{};
 
 	ModelData(glm::vec3 pos)
