@@ -21,9 +21,9 @@ public:
 	int pointCount{5};
 	int vertexCount{};
 
-	int triangleCountX{500};
+	int triangleCountX{10};
 	int triangleCountY{1};
-	int triangleCountZ{500};
+	int triangleCountZ{10};
 	int triangleCount{};
 
 	ModelData(glm::vec3 pos)
@@ -32,32 +32,58 @@ public:
 		, triangleCount{triangleCountX*triangleCountY*triangleCountZ}
 	{
 
-		vertices=new glm::vec3[vertexCount]
+		vertices=new glm::vec3[vertexCount*2]
 		{
 			glm::vec3{+0.0f, +0.5f, +0.0f},
-			glm::vec3{-0.5f, -0.0f, +0.5f},
-			glm::vec3{+0.5f, -0.0f, +0.5f},
-
-			glm::vec3{+0.0f, +0.5f, +0.0f},
-			glm::vec3{+0.5f, -0.0f, +0.5f},
-			glm::vec3{+0.5f, +0.0f, -0.5f},
-
-			glm::vec3{+0.0f, +0.5f, +0.0f},
-			glm::vec3{+0.5f, +0.0f, -0.5f},
-			glm::vec3{-0.5f, -0.0f, -0.5f},
-
-			glm::vec3{+0.0f, +0.5f, +0.0f},
-			glm::vec3{-0.5f, -0.0f, -0.5f},
-			glm::vec3{-0.5f, -0.0f, +0.5f},
-		};
-
-		normals=new glm::vec3[sideCount]
-		{
 			glm::vec3{+0.0f, +0.5f, +0.5f},
+
+			glm::vec3{-0.5f, -0.0f, +0.5f},
+			glm::vec3{+0.0f, +0.5f, +0.5f},
+
+			glm::vec3{+0.5f, -0.0f, +0.5f},
+			glm::vec3{+0.0f, +0.5f, +0.5f},
+
+
+
+			glm::vec3{+0.0f, +0.5f, +0.0f},
 			glm::vec3{+0.5f, +0.5f, +0.0f},
-			glm::vec3{-0.5f, +0.0f, -0.5f},
+
+			glm::vec3{+0.5f, -0.0f, +0.5f},
+			glm::vec3{+0.5f, +0.5f, +0.0f},
+
+			glm::vec3{+0.5f, +0.0f, -0.5f},
+			glm::vec3{+0.5f, +0.5f, +0.0f},
+
+
+
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{+0.0f, +0.5f, -0.5f},
+
+			glm::vec3{+0.5f, +0.0f, -0.5f},
+			glm::vec3{+0.0f, +0.5f, -0.5f},
+
+			glm::vec3{-0.5f, -0.0f, -0.5f},
+			glm::vec3{+0.0f, +0.5f, -0.5f},
+
+
+
+			glm::vec3{+0.0f, +0.5f, +0.0f},
+			glm::vec3{-0.5f, +0.5f, +0.0f},
+
+			glm::vec3{-0.5f, -0.0f, -0.5f},
+			glm::vec3{-0.5f, +0.5f, +0.0f},
+
+			glm::vec3{-0.5f, -0.0f, +0.5f},
 			glm::vec3{-0.5f, +0.5f, +0.0f},
 		};
+
+		// normals=new glm::vec3[sideCount]
+		// {
+		// 	glm::vec3{+0.0f, +0.5f, +0.5f},
+		// 	glm::vec3{+0.5f, +0.5f, +0.0f},
+		// 	glm::vec3{+0.0f, +0.5f, -0.5f},
+		// 	glm::vec3{-0.5f, +0.5f, +0.0f},
+		// };
 
 		offsets=new glm::vec3[triangleCount];
 		generateOffsets(1.0f);
@@ -76,9 +102,9 @@ public:
 			{
 				for (int k{}; k < triangleCountZ; k++)
 				{
-					randX=spacing*((std::rand()%100)/100.f-.5);
-					randY=1+(std::rand()%100/100.f)*2;
-					randZ=spacing*((std::rand()%100)/100.f-.5);
+					// randX=spacing*((std::rand()%100)/100.f-.5);
+					// randY=1+(std::rand()%100/100.f)*2;
+					// randZ=spacing*((std::rand()%100)/100.f-.5);
 					offsets[i*triangleCountY*triangleCountZ+j*triangleCountZ+k]=glm::vec3{(float)i*spacing+randX,(float)j,(float)k*spacing+randZ};
 				}
 			}
@@ -125,7 +151,7 @@ public:
 
 	int getVertexBufferSize()
 	{
-		return vertexCount * sizeof(glm::vec3);
+		return vertexCount * sizeof(glm::vec3) * 2;
 	}
 
 	~ModelData()

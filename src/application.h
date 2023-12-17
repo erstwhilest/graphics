@@ -84,6 +84,9 @@ double deltaTime2{};
 
 float ambientStrength{1};
 
+float lightPos[3]{+0.0f, +10.0f, +0.0f};
+float lightColor[3]{+1.0f, +1.0f, +1.0f};
+
 
 ModelData model;
 
@@ -104,8 +107,9 @@ void draw()
 
 			ourShader.setVec3("baseColor", glm::make_vec3(model.baseColor));
 			ourShader.setVec3("tipColor", glm::make_vec3(model.tipColor));
-			ourShader.setVec3("lightColor", glm::vec3(+1.0f, +1.0f, +1.0f));
-			ourShader.setVec3("lightPos", glm::vec3(+0.0f, +10.0f, +0.0f));
+
+			ourShader.setVec3("lightColor", glm::make_vec3(lightColor));
+			ourShader.setVec3("lightPos", glm::make_vec3(lightPos));
 			ourShader.setFloat("ambientStrength", ambientStrength);
 
 
@@ -134,7 +138,7 @@ void draw()
 			ourLightShader.setMat4("view", view);
 			modelTransform = glm::mat4(1.0f);
 			modelTransform = glm::scale(modelTransform, glm::vec3(5.0f));
-			modelTransform = glm::translate(modelTransform, glm::vec3(0.0f, 10.0f, 0.0f));
+			modelTransform = glm::translate(modelTransform, glm::make_vec3(lightPos));
 			ourLightShader.setMat4("model", modelTransform);
 			
 			glBindVertexArray(lightVAO);
@@ -261,15 +265,16 @@ Application()
 	// position attribute
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3)*2, (void*)0);
 	glEnableVertexAttribArray(0);
 
 
 	// normal attribute
 	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.sideCount, model.normals, GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glVertexAttribDivisor(1, 4);
+	glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3)*2, (void*)(sizeof(glm::vec3)));
+	// glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+	// glVertexAttribDivisor(1, 1);
 	glEnableVertexAttribArray(1);
 	
 
@@ -433,29 +438,42 @@ void run()
 		{
 			ImGui::Begin("Settings");
 			ImGui::Checkbox("Render", &render);
-			ImGui::ColorPicker3("Tip Color", model.tipColor);
-			ImGui::ColorPicker3("Base Color", model.baseColor);
-			// model.refresh();
-			// glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			// glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
-			// glBufferSubData(GL_ARRAY_BUFFER, 0, model.getVertexBufferSize(), model.vertices);
-			// glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-			ImGui::SliderFloat("Blade Height", &bladeHeight, 1, 100);
-
-			ImGui::SliderFloat("Spacing", &bladeSpacing, 0.1, 10);
-			if (bladeSpacing!=lastBladeSpacing)
+			if (ImGui::TreeNode("Grass Color"))
 			{
-				model.generateOffsets(bladeSpacing);
-				glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-				glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.offsets, GL_DYNAMIC_DRAW);
-				// glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*model.triangleCount, model.offsets);
-				glBindBuffer(GL_ARRAY_BUFFER, 0);
+				ImGui::ColorPicker3("Tip Color", model.tipColor);
+				ImGui::ColorPicker3("Base Color", model.baseColor);
+				ImGui::TreePop();
 			}
-			lastBladeSpacing=bladeSpacing;
 
-			ImGui::SliderFloat("Size", &bladeSize, 0.1, 10);
-			ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0.01, 1);
+			if (ImGui::TreeNode("Grass Settings"))
+			{
+				ImGui::SliderFloat("Blade Height", &bladeHeight, 1, 100);
+
+				ImGui::SliderFloat("Spacing", &bladeSpacing, 0.1, 10);
+				if (bladeSpacing!=lastBladeSpacing)
+				{
+					model.generateOffsets(bladeSpacing);
+					glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+					glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.offsets, GL_DYNAMIC_DRAW);
+					// glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3)*model.triangleCount, model.offsets);
+					glBindBuffer(GL_ARRAY_BUFFER, 0);
+				}
+				lastBladeSpacing=bladeSpacing;
+
+				ImGui::SliderFloat("Size", &bladeSize, 0.1, 10);
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Light Settings"))
+			{
+				ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0.01, 1);
+
+				ImGui::ColorPicker3("Base Color", lightColor);
+				ImGui::SliderFloat("Light Pos X", &lightPos[0], 0, 100);
+				ImGui::SliderFloat("Light Pos Y", &lightPos[1], 0, 100);
+				ImGui::SliderFloat("Light Pos Z", &lightPos[2], 0, 100);
+				ImGui::TreePop();
+			}
 			
 			ImGui::End();
 		}
