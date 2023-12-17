@@ -44,16 +44,18 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 bool mouseFocus = false;
 bool render = true;
+bool renderNormals = true;
 
-float bladeHeight{1.0f};
+float bladeHeight{25.0f};
 
-float bladeSpacing{1.0f};
+float bladeSpacing{10.0f};
 float lastBladeSpacing{bladeSpacing};
-float bladeSize{1.0f};
+float bladeSize{10.0f};
 
 double easeTime{};
 Shader ourShader;
 Shader ourLightShader;
+Shader ourNormalShader;
 
 ImGuiIO* ioptr{};
 
@@ -82,7 +84,7 @@ double lastTime{};
 double currentTime{};
 double deltaTime2{};
 
-float ambientStrength{1};
+float ambientStrength{.1};
 
 float lightPos[3]{+0.0f, +10.0f, +0.0f};
 float lightColor[3]{+1.0f, +1.0f, +1.0f};
@@ -109,7 +111,7 @@ void draw()
 			ourShader.setVec3("tipColor", glm::make_vec3(model.tipColor));
 
 			ourShader.setVec3("lightColor", glm::make_vec3(lightColor));
-			ourShader.setVec3("lightPos", glm::make_vec3(lightPos));
+			ourShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
 			ourShader.setFloat("ambientStrength", ambientStrength);
 
 
@@ -124,23 +126,31 @@ void draw()
 
 			glBindVertexArray(VAO);
 			glm::mat4 modelTransform = glm::mat4(1.0f);
-			// float angle = 3.14f;
-			// modelTransform=glm::rotate(modelTransform, glm::radians(angle)+(float)glfwGetTime(), glm::vec3(1.0f, 1.0f, 1.0f));
 			modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
 			modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
+			if (renderNormals)
+			{
+				ourNormalShader.use();
+				ourNormalShader.setMat4("projection", projection);
+				ourNormalShader.setMat4("view", view);
+				ourNormalShader.setMat4("model", modelTransform);
+				ourNormalShader.setFloat("time", glfwGetTime());
+
+				glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
+			}
 
 			ourLightShader.use();
 
 			ourLightShader.setMat4("projection", projection);
 			ourLightShader.setMat4("view", view);
-			modelTransform = glm::mat4(1.0f);
-			modelTransform = glm::scale(modelTransform, glm::vec3(5.0f));
-			modelTransform = glm::translate(modelTransform, glm::make_vec3(lightPos));
-			ourLightShader.setMat4("model", modelTransform);
-			
+			glm::mat4 lightTransform = glm::mat4(1.0f);
+			lightTransform = glm::scale(lightTransform, glm::vec3(5.0f));
+			lightTransform = glm::translate(lightTransform, glm::make_vec3(lightPos));
+			ourLightShader.setMat4("model", lightTransform);
+
 			glBindVertexArray(lightVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
@@ -244,14 +254,9 @@ Application()
 
 	// build and compile our shader program
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
+	ourNormalShader = Shader("src/normvertexshader.glsl", "src/normfragmentshader.glsl", "src/normgeometryshader.glsl");
 	ourLightShader = Shader("src/lightvertexshader.glsl", "src/lightfragmentshader.glsl");
 
-	// glGenBuffers(sizeof(buffers)/sizeof(buffers[0]), buffers);
-	// EBO = buffers[0];
-	// VBO = buffers[1];
-	// instanceVBO = buffers[2];
-	// randomVBO = buffers[3];
-	// normalVBO = buffers[4];
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &instanceVBO);
 	glGenBuffers(1, &randomVBO);
@@ -350,7 +355,6 @@ Application()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glEnableVertexAttribArray(0);
 
-
 	// unbind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -438,6 +442,7 @@ void run()
 		{
 			ImGui::Begin("Settings");
 			ImGui::Checkbox("Render", &render);
+			ImGui::Checkbox("Render Normals", &renderNormals);
 			if (ImGui::TreeNode("Grass Color"))
 			{
 				ImGui::ColorPicker3("Tip Color", model.tipColor);
@@ -469,9 +474,9 @@ void run()
 				ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0.01, 1);
 
 				ImGui::ColorPicker3("Base Color", lightColor);
-				ImGui::SliderFloat("Light Pos X", &lightPos[0], 0, 100);
-				ImGui::SliderFloat("Light Pos Y", &lightPos[1], 0, 100);
-				ImGui::SliderFloat("Light Pos Z", &lightPos[2], 0, 100);
+				ImGui::SliderFloat("Light Pos X", &lightPos[0], -50, 100);
+				ImGui::SliderFloat("Light Pos Y", &lightPos[1], -10, 100);
+				ImGui::SliderFloat("Light Pos Z", &lightPos[2], -50, 100);
 				ImGui::TreePop();
 			}
 			
