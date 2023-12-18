@@ -33,11 +33,11 @@ void scroll_wrapper(GLFWwindow* window, double xoffset, double yoffset);
 class Application
 {
 // settings
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1080;
+const unsigned int SCR_WIDTH = 2560;
+const unsigned int SCR_HEIGHT = 1440;
 
 // camera
-Camera camera{glm::vec3(-100.0f, 100.0f, -100.0f)};
+Camera camera{glm::vec3(-100.0f, 75.0f, -100.0f)};
 
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
@@ -46,11 +46,11 @@ bool mouseFocus = false;
 bool render = true;
 bool renderNormals = true;
 
-float bladeHeight{25.0f};
+float bladeHeight{80.0f};
 
-float bladeSpacing{10.0f};
+float bladeSpacing{4.0f};
 float lastBladeSpacing{bladeSpacing};
-float bladeSize{10.0f};
+float bladeSize{2.0f};
 
 double easeTime{};
 Shader ourShader;
@@ -70,6 +70,7 @@ unsigned int VBO;
 unsigned int instanceVBO;
 unsigned int randomVBO;
 unsigned int normalVBO;
+// unsigned int colorCutTimeVBO;
 
 #define BUFFER_COUNT 5
 unsigned int buffers[BUFFER_COUNT];
@@ -79,13 +80,13 @@ unsigned int lightVAO;
 
 GLFWwindow* window{};
 
-double fpsLimit{1/300.f};
+double fpsLimit{1/1000.f};
 double lastTime{};
 double currentTime{};
 double deltaTime2{};
 
-float ambientStrength{.1};
-float diffuseStrength{1};
+float ambientStrength{1};
+float diffuseStrength{0};
 float constantStrength{1};
 float linearStrength{0.007f};
 float quadraticStrength{0.0002f*1000};
@@ -124,7 +125,8 @@ void draw()
 			ourShader.setFloat("constant", constantStrength);
 			ourShader.setFloat("lienar", linearStrength);
 			ourShader.setFloat("quadratic", quadraticStrength/1000);
-
+			ourShader.setFloat("minCutHeight", 10.f);
+			// ourShader.setVec3("playerPos", camera.Position);
 
 
 			// pass projection matrix to shader (note that in this case it could change every frame)
@@ -138,8 +140,8 @@ void draw()
 
 			glBindVertexArray(VAO);
 			glm::mat4 modelTransform = glm::mat4(1.0f);
-			modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
-			modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
+			// modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
+			// modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
@@ -193,7 +195,7 @@ void processInput(GLFWwindow *window)
 public:
 
 Application()
-	: model{glm::vec3( 0.0f,  0.0f,  0.0f)}
+	: model{glm::vec3( 0.0f,  0.0f,  0.0f), bladeSpacing}
 {
 	// random initialize
 	std::srand(std::time(nullptr));
@@ -203,7 +205,7 @@ Application()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_SAMPLES, 8);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	// glfw window creation
 	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
@@ -308,6 +310,13 @@ Application()
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
 	glVertexAttribDivisor(3, 1);
 	glEnableVertexAttribArray(3);
+
+	// // random attribute
+	// glBindBuffer(GL_ARRAY_BUFFER, colorCutTimeVBO);
+	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4)*model.triangleCount, model.colorCutTime, GL_DYNAMIC_DRAW);
+	// glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+	// glVertexAttribDivisor(4, 1);
+	// glEnableVertexAttribArray(4);
 
 
 	// LIGHT SOURCE CUBE
@@ -483,7 +492,7 @@ void run()
 			if (ImGui::TreeNode("Light Settings"))
 			{
 				ImGui::SliderFloat("Ambeint Strength", &ambientStrength, 0, 1);
-				ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.01, 1);
+				ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0, 2);
 				ImGui::SliderFloat("Constant Strength", &constantStrength, 1, 1);
 				ImGui::SliderFloat("Linear Strength", &linearStrength, 0.0014, 0.07);
 				ImGui::SliderFloat("Quadratic Strength", &quadraticStrength, 0.001, 1);

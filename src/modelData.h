@@ -14,18 +14,19 @@ public:
 	glm::vec3* normals{};
 	glm::vec3* offsets{};
 	glm::vec3* random{};
+	glm::vec3* colorCutTime{};
 	glm::vec3 position{};
 	float* tipColor{new float[3]{+0.3f, +0.7f, +0.0f}};
 	float* baseColor{new float[3]{+0.0f, +0.0f, +0.0f}};
 	int sideCount{4};
 	int vertexCount{};
 
-	int triangleCountX{1000};
+	int triangleCountX{100};
 	int triangleCountY{1};
-	int triangleCountZ{1000};
+	int triangleCountZ{100};
 	int triangleCount{};
 
-	ModelData(glm::vec3 pos)
+	ModelData(glm::vec3 pos, float bladeSpacing)
 		: position{pos}
 		, vertexCount{3*sideCount}
 		, triangleCount{triangleCountX*triangleCountY*triangleCountZ}
@@ -77,7 +78,7 @@ public:
 		};
 
 		offsets=new glm::vec3[triangleCount];
-		generateOffsets(10.0f);
+		generateOffsets(bladeSpacing);
 		random=new glm::vec3[triangleCount];
 		generateRandom();
 	}
@@ -154,5 +155,6 @@ public:
 		delete[] offsets;
 		delete[] random;
 		delete[] indices;
+		delete[] colorCutTime;
 	}
 };
