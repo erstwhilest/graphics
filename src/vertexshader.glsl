@@ -35,14 +35,15 @@ void main()
 	vec4 newPos = modelToWorld * vec4(aPos, 1.0);
 	if (gl_VertexID % 3 == 0)
 	{
-		if (length(vec3(newPos)-lightPos)<100)
-		{
-			newPos.y=min(minCutHeight, (-1.0/(0.5*time+1)+1)*30.0);
-		}
-		else
-		{
-			newPos.y=(-1.0/(0.5*time+1)+1)*30.0;
-		}
+		// if (length(vec3(newPos)-lightPos)<100)
+		// {
+		// 	newPos.y=min(minCutHeight, (-1.0/(0.5*time+1)+1)*30.0);
+		// }
+		// else
+		// {
+		// 	newPos.y=(-1.0/(0.5*time+1)+1)*30.0;
+		// }
+		newPos.y=(-1.0/(0.5*time+1)+1)*30.0;
 		newPos.x+=aRandom.y*sin(2*PI*aRandom.z*time+2*aRandom.x*PI);
 		// newPos.y*=(aRandom.x*.2+.5);
 		newPos.z+=aRandom.y*cos(1*PI*aRandom.z*time+2*0.5*aRandom.x*PI);

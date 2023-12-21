@@ -1,0 +1,9 @@
+E:/RENDER/graphics/freetype/build/CMakeFiles/freetype.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/package.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/package_source.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/edit_cache.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/rebuild_cache.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/list_install_components.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/install.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/install/local.dir
+E:/RENDER/graphics/freetype/build/CMakeFiles/install/strip.dir

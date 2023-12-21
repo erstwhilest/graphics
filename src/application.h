@@ -1,10 +1,4 @@
-// render includes
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <stb_image/stb_image.h>
+#pragma once
 
 // stl includes
 #include <iostream>
@@ -13,6 +7,16 @@
 #include <cstdlib>
 #include <ctime>
 #include <random>
+
+// render includes
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <stb_image/stb_image.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H 
 
 // imgui
 #include "imgui.h"
@@ -23,6 +27,7 @@
 #include "shader.h"
 #include "camera.h"
 #include "modelData.h"
+#include "textmanager.h"
 
 void framebuffer_size_wrapper(GLFWwindow* window, int width, int height);
 void key_wrapper(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -32,9 +37,10 @@ void scroll_wrapper(GLFWwindow* window, double xoffset, double yoffset);
 
 class Application
 {
+public:
 // settings
-const unsigned int SCR_WIDTH = 2560;
-const unsigned int SCR_HEIGHT = 1440;
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 720;
 
 // camera
 Camera camera{glm::vec3(-100.0f, 75.0f, -100.0f)};
@@ -54,8 +60,9 @@ float bladeSize{2.0f};
 
 double easeTime{};
 Shader ourShader;
-Shader ourLightShader;
 Shader ourNormalShader;
+
+TextManager textmanager{};
 
 ImGuiIO* ioptr{};
 
@@ -65,25 +72,21 @@ float lastFrame = 0.0f;
 
 
 unsigned int VAO;
-
 unsigned int VBO;
 unsigned int instanceVBO;
 unsigned int randomVBO;
 unsigned int normalVBO;
-// unsigned int colorCutTimeVBO;
 
 #define BUFFER_COUNT 5
 unsigned int buffers[BUFFER_COUNT];
 
-unsigned int lightVBO;
-unsigned int lightVAO;
-
 GLFWwindow* window{};
 
-double fpsLimit{1/1000.f};
+double fpsLimit{1/100000.f};
 double lastTime{};
 double currentTime{};
 double deltaTime2{};
+unsigned int fps{};
 
 float ambientStrength{1};
 float diffuseStrength{0};
@@ -94,9 +97,7 @@ float quadraticStrength{0.0002f*1000};
 float lightPos[3]{+0.0f, +10.0f, +0.0f};
 float lightColor[3]{+1.0f, +1.0f, +1.0f};
 
-
 ModelData model;
-
 
 void draw()
 {
@@ -125,7 +126,7 @@ void draw()
 			ourShader.setFloat("constant", constantStrength);
 			ourShader.setFloat("lienar", linearStrength);
 			ourShader.setFloat("quadratic", quadraticStrength/1000);
-			ourShader.setFloat("minCutHeight", 10.f);
+			ourShader.setFloat("minCutHeight", 100.0f);
 			// ourShader.setVec3("playerPos", camera.Position);
 
 
@@ -140,33 +141,13 @@ void draw()
 
 			glBindVertexArray(VAO);
 			glm::mat4 modelTransform = glm::mat4(1.0f);
-			// modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
-			// modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
+			modelTransform = glm::scale(modelTransform, glm::vec3(bladeSize, 1.0f, bladeSize));
+			modelTransform = glm::scale(modelTransform, glm::vec3(1.0f, bladeHeight, 1.0f));
 			ourShader.setMat4("model", modelTransform);
 			glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
 
-			// ourLightShader.use();
-
-			// ourLightShader.setMat4("projection", projection);
-			// ourLightShader.setMat4("view", view);
-			// lightTransform = glm::translate(lightTransform, camera.Position);
-			// ourLightShader.setMat4("model", lightTransform);
-
-			// glBindVertexArray(lightVAO);
-			// glDrawArrays(GL_TRIANGLES, 0, 36);
-
-			// if (renderNormals)
-			// {
-			// 	ourNormalShader.use();
-			// 	ourNormalShader.setMat4("projection", projection);
-			// 	ourNormalShader.setMat4("view", view);
-			// 	ourNormalShader.setMat4("objModel", modelTransform);
-			// 	// ourNormalShader.setMat4("lightModel", lightTransform);
-			// 	ourNormalShader.setVec3("lightPos", glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
-			// 	ourNormalShader.setFloat("time", glfwGetTime());
-			// 	glBindVertexArray(VAO);
-			// 	// glDrawArraysInstanced(GL_TRIANGLES, 0, model.vertexCount, model.triangleCount);
-			// }
+			// text rendering
+			textmanager.RenderText("FPS:"+std::to_string(fps), 25.0f, 25.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		
@@ -269,7 +250,6 @@ Application()
 	// build and compile our shader program
 	ourShader = Shader("src/vertexshader.glsl", "src/fragmentshader.glsl");
 	ourNormalShader = Shader("src/normvertexshader.glsl", "src/normfragmentshader.glsl", "src/normgeometryshader.glsl");
-	ourLightShader = Shader("src/lightvertexshader.glsl", "src/lightfragmentshader.glsl");
 
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &instanceVBO);
@@ -280,13 +260,11 @@ Application()
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-
 	// position attribute
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, model.getVertexBufferSize(), model.vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3)*2, (void*)0);
 	glEnableVertexAttribArray(0);
-
 
 	// normal attribute
 	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
@@ -296,7 +274,6 @@ Application()
 	// glVertexAttribDivisor(1, 1);
 	glEnableVertexAttribArray(1);
 	
-
 	// offset attribute
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*model.triangleCount, model.offsets, GL_DYNAMIC_DRAW);
@@ -311,70 +288,7 @@ Application()
 	glVertexAttribDivisor(3, 1);
 	glEnableVertexAttribArray(3);
 
-	// // random attribute
-	// glBindBuffer(GL_ARRAY_BUFFER, colorCutTimeVBO);
-	// glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4)*model.triangleCount, model.colorCutTime, GL_DYNAMIC_DRAW);
-	// glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-	// glVertexAttribDivisor(4, 1);
-	// glEnableVertexAttribArray(4);
-
-
-	// LIGHT SOURCE CUBE
-	glm::vec3 lightCube[] = 
-	{
-		glm::vec3{-0.5, +0.5, +0.5},
-		glm::vec3{-0.5, -0.5, +0.5},
-		glm::vec3{+0.5, -0.5, +0.5},
-		glm::vec3{-0.5, +0.5, +0.5},
-		glm::vec3{+0.5, -0.5, +0.5},
-		glm::vec3{+0.5, +0.5, +0.5},
-		
-		glm::vec3{+0.5, +0.5, +0.5},
-		glm::vec3{+0.5, -0.5, +0.5},
-		glm::vec3{+0.5, -0.5, -0.5},
-		glm::vec3{+0.5, +0.5, +0.5},
-		glm::vec3{+0.5, -0.5, -0.5},
-		glm::vec3{+0.5, +0.5, -0.5},
-		
-		glm::vec3{+0.5, +0.5, -0.5},
-		glm::vec3{+0.5, -0.5, -0.5},
-		glm::vec3{-0.5, -0.5, -0.5},
-		glm::vec3{+0.5, +0.5, -0.5},
-		glm::vec3{-0.5, -0.5, -0.5},
-		glm::vec3{-0.5, +0.5, -0.5},
-		
-		glm::vec3{-0.5, +0.5, -0.5},
-		glm::vec3{-0.5, -0.5, -0.5},
-		glm::vec3{-0.5, -0.5, +0.5},
-		glm::vec3{-0.5, +0.5, -0.5},
-		glm::vec3{-0.5, -0.5, +0.5},
-		glm::vec3{-0.5, +0.5, +0.5},
-		
-		glm::vec3{-0.5, +0.5, -0.5},
-		glm::vec3{-0.5, +0.5, +0.5},
-		glm::vec3{+0.5, +0.5, +0.5},
-		glm::vec3{-0.5, +0.5, -0.5},
-		glm::vec3{+0.5, +0.5, +0.5},
-		glm::vec3{+0.5, +0.5, -0.5},
-		
-		glm::vec3{+0.5, -0.5, +0.5},
-		glm::vec3{-0.5, -0.5, -0.5},
-		glm::vec3{+0.5, -0.5, -0.5},
-		glm::vec3{+0.5, -0.5, +0.5},
-		glm::vec3{-0.5, -0.5, +0.5},
-		glm::vec3{-0.5, -0.5, -0.5},
-
-	};
-
-	// light
-	glGenVertexArrays(1, &lightVAO);
-	glBindVertexArray(lightVAO);
-
-	glGenBuffers(1, &lightVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(lightCube), lightCube, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glEnableVertexAttribArray(0);
+	textmanager.init();
 
 	// unbind buffers
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -498,9 +412,6 @@ void run()
 				ImGui::SliderFloat("Quadratic Strength", &quadraticStrength, 0.001, 1);
 
 				ImGui::ColorPicker3("Light Color", lightColor);
-				// ImGui::SliderFloat("Light Pos X", &lightPos[0], -50, 100);
-				// ImGui::SliderFloat("Light Pos Y", &lightPos[1], -10, 100);
-				// ImGui::SliderFloat("Light Pos Z", &lightPos[2], -50, 100);
 				ImGui::TreePop();
 			}
 			
@@ -508,7 +419,7 @@ void run()
 		}
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
-		// lastFrame = currentFrame;
+		deltaTime2+=deltaTime;
 
 		ImGui::Render();
 		if (deltaTime > fpsLimit)
@@ -516,6 +427,12 @@ void run()
 			processInput(window);
 			draw();
 			lastFrame=currentFrame;
+		}
+
+		if (deltaTime2 > 1.0f / 5)
+		{
+			fps=static_cast<int>(1/deltaTime);
+			deltaTime2=0;
 		}
 
 		glfwPollEvents();

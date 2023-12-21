@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "vertex.h"
 #include "glm\glm.hpp"
 
 #define TIP_COLOR glm::make_vec3(tipColor)// glm::vec3{+0.5f, +0.7f, +0.0f}
